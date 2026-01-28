@@ -2,7 +2,7 @@ from functools import lru_cache
 from fastapi import HTTPException
 from bot.indexer import ProductIndexer
 from bot.qwen_service import QwenService
-from scrape.logger import get_logger
+from config import get_logger
 
 logger = get_logger(__name__)
 

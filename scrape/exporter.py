@@ -1,13 +1,18 @@
 import json
+from pathlib import Path
+
 import pandas as pd
-from scrape.logger import get_logger
+
+from config import get_logger, settings
 
 logger = get_logger(__name__)
 
 
-def save_to_jsonl(products, filename="data/products.jsonl"):
+def save_to_jsonl(products, filename=None):
+    filename = filename or settings.products_jsonl
     logger.info(f"Saving {len(products)} products to {filename}")
     try:
+        Path(filename).parent.mkdir(parents=True, exist_ok=True)
         df = pd.DataFrame(products)
         df.to_json(
             filename, orient="records", lines=True, force_ascii=False, index=False
@@ -17,39 +22,20 @@ def save_to_jsonl(products, filename="data/products.jsonl"):
         logger.error(f"Failed to save JSONL: {e}")
 
 
-def save_to_csv(products, filename="data/products.csv"):
+def save_to_csv(products, filename=None):
+    filename = filename or settings.products_csv
     logger.info(f"Saving products CSV to {filename}")
     try:
+        Path(filename).parent.mkdir(parents=True, exist_ok=True)
         df = pd.DataFrame(products)
 
-        # Convert list fields to JSON strings for CSV compatibility
-        # We process a copy or apply to the dataframe directly
-        list_cols = ["bullet_features", "breadcrumbs"]
-        for col in list_cols:
+        for col in settings.csv_list_columns:
             if col in df.columns:
                 df[col] = df[col].apply(
                     lambda x: json.dumps(x) if isinstance(x, list) else x
                 )
 
-        column_order = [
-            "asin",
-            "title",
-            "price",
-            "rating",
-            "review_count",
-            "brand",
-            "bullet_features",
-            "breadcrumbs",
-            "dimensions",
-            "weight",
-            "url",
-            "image_url",
-        ]
-
-        # Ensure only existing columns are selected if some are missing
-        existing_cols = [c for c in column_order if c in df.columns]
-
-        # Reorder and save
+        existing_cols = [c for c in settings.csv_column_order if c in df.columns]
         df[existing_cols].to_csv(filename, index=False, encoding="utf-8")
         logger.info(f"Successfully saved products CSV to {filename}")
     except Exception as e:

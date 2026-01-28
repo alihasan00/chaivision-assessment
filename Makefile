@@ -25,15 +25,15 @@ run: serve
 scrape:
 	$(PYTHON) -m scrape.scrape --q "$(KEYWORD)" --n $(LIMIT)
 
+# Run the indexer to build the vector store
+# Usage: make index REBUILD=--rebuild (optional)
+index:
+	$(PYTHON) -m bot.indexer $(REBUILD)
+
 # Run the comparison script
 compare:
 	$(PYTHON) analysis/compare.py
 
-# Run the indexer to build the vector store
-index:
-	$(PYTHON) -m bot.indexer
-
 clean:
 	rm -rf __pycache__
 	rm -rf $(VENV_DIR)
-

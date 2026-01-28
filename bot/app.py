@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends
+from config import get_logger
 from scrape.fetcher import scrape_products
-from scrape.logger import get_logger
 from bot.schemas import (
     ScrapeRequest,
     ScrapeResponse,

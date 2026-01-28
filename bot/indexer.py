@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings
 from langchain_core.documents import Document
-from scrape.logger import get_logger
+from config import get_logger
 from bot.schemas import Product
 
 load_dotenv()
@@ -136,6 +136,10 @@ class ProductIndexer:
             )
             self.documents.append(doc)
 
+        if not self.documents:
+            logger.warning("No documents to index. Skipping vector store creation.")
+            return
+
         logger.info("Building vector store with ChromaDB...")
         self.vector_store = Chroma.from_documents(
             documents=self.documents,
@@ -194,9 +198,12 @@ def main():
     indexer = ProductIndexer(persist_directory=args.persist_dir)
 
     persist_path = Path(args.persist_dir)
+    if persist_path.exists() and not args.rebuild:
+        logger.info("Index already exists. Use --rebuild to recreate.")
+        return
+
     if args.rebuild and persist_path.exists():
         logger.info(f"Resetting existing collection at {args.persist_dir}...")
-        # Initialize Chroma temporarily to delete the collection
         db = Chroma(
             persist_directory=args.persist_dir,
             embedding_function=indexer.embeddings,
@@ -206,11 +213,12 @@ def main():
             logger.info("Collection deleted.")
         except Exception as e:
             logger.warning(f"Failed to delete collection (might not exist): {e}")
-    else:
-        logger.info("Index already exists. Use --rebuild to recreate.")
-        return
 
     products = indexer.load_products(args.input)
+    if not products:
+        logger.error(f"No products found in {args.input}. Please scrape products first.")
+        return
+
     indexer.build_index(products)
 
     logger.info(f"Index saved to {args.persist_dir}")

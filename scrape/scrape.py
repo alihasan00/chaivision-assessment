@@ -1,7 +1,8 @@
 import argparse
 import asyncio
+
+from config import get_logger, settings
 from scrape.fetcher import scrape_products
-from scrape.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -9,7 +10,7 @@ logger = get_logger(__name__)
 async def main():
     logger.info("Starting Amazon scraper with Zyte...")
     parser = argparse.ArgumentParser(
-        description="Scrape top 10 Amazon products for a given search query"
+        description="Scrape top Amazon products for a given search query"
     )
     parser.add_argument(
         "--q",
@@ -20,8 +21,8 @@ async def main():
     parser.add_argument(
         "--n",
         type=int,
-        default=10,
-        help="Number of products to scrape (default: 10)",
+        default=settings.default_product_limit,
+        help=f"Number of products to scrape (default: {settings.default_product_limit})",
     )
     parser.add_argument(
         "--use-local-html",

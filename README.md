@@ -73,6 +73,12 @@ After scraping, build the vector index for the chatbot:
 make index
 ```
 
+To rebuild an existing index:
+
+```bash
+make index REBUILD=--rebuild
+```
+
 ### 4. Run API Server
 
 Start the FastAPI server to expose endpoints:
@@ -225,20 +231,28 @@ This project makes the following assumptions and design decisions:
 
 ## Project Structure
 
+- `config/`: Configuration and shared utilities.
+  - `settings.py`: Pydantic settings for all configuration values
+  - `logger.py`: Centralized logging configuration
+  - `prompts.py`: AI prompt templates
 - `scrape/`: Scraping logic (fetcher, parsers, CLI).
   - `fetcher.py`: Zyte API integration for HTTP fetch with polite backoff
   - `parsers.py`: Selectors and data normalizers
   - `scrape.py`: CLI entrypoint
+  - `exporter.py`: Export functions for JSONL and CSV
 - `bot/`: Chatbot logic (indexing, FastAPI app, Qwen integration).
   - `indexer.py`: Builds vector store from products.jsonl
   - `app.py`: FastAPI app with `/scrape`, `/index`, and `/ask` endpoints
   - `qwen_service.py`: Qwen API integration for question answering
+  - `schemas.py`: Pydantic models for API requests/responses
+  - `utils.py`: Utility functions for dependency injection
 - `analysis/`: Feature comparison and analysis.
   - `compare.py`: Builds feature_matrix.csv from products.jsonl
 - `data/`: Stores scraped JSONL, CSVs, and vector DB.
   - `products.jsonl`: Scraped product data (one JSON object per line)
   - `products.csv`: CSV export of scraped products
   - `feature_matrix.csv`: AI-extracted feature comparison matrix
+  - `chroma_db/`: ChromaDB vector store persistence directory
 
 ## Test Keywords
 

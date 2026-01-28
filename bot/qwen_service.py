@@ -3,12 +3,12 @@ import os
 from dotenv import load_dotenv
 from openai import OpenAI
 from langchain_core.documents import Document
-from scrape.logger import get_logger
-from bot.prompts import (
+from config import (
+    FEATURE_EXTRACTION_PROMPT,
+    PRODUCT_CONTEXT_TEMPLATE,
     SYSTEM_PROMPT,
     USER_PROMPT_TEMPLATE,
-    PRODUCT_CONTEXT_TEMPLATE,
-    FEATURE_EXTRACTION_PROMPT,
+    get_logger,
 )
 from bot.schemas import QwenAnswerResponse, ProductSource
 import json
