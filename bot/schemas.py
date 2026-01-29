@@ -20,9 +20,6 @@ class AskRequest(BaseModel):
 
 
 class Product(BaseModel):
-    """Product model representing scraped Amazon product data.
-    All fields are optional since scraped data can be empty or incomplete.
-    """
     model_config = ConfigDict(extra="ignore")
     
     asin: Optional[str] = None
@@ -41,16 +38,17 @@ class Product(BaseModel):
 
 class ProductSource(BaseModel):
     asin: str
-    title: str
-    brand: str
-    price: str
-    rating: str
-    review_count: str
-    breadcrumbs: str
-    dimensions: str
-    weight: str
-    url: str
-    image_url: str
+    snippet: str = ""
+    title: str = ""
+    brand: str = ""
+    price: str = ""
+    rating: str = ""
+    review_count: str = ""
+    breadcrumbs: str = ""
+    dimensions: str = ""
+    weight: str = ""
+    url: str = ""
+    image_url: str = ""
 
 
 class AskResponse(BaseModel):
@@ -71,7 +69,6 @@ class IndexResponse(BaseModel):
 
 
 class QwenAnswerResponse(BaseModel):
-    """Response model for QwenService.answer_question()"""
     answer: str
     sources: List[ProductSource]
     num_sources: int

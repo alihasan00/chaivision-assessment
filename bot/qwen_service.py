@@ -57,8 +57,6 @@ class QwenService:
         logger.info(f"Answering question: {question}")
 
         context = self._format_context(documents)
-
-        # Construct the user message using the template
         user_content = USER_PROMPT_TEMPLATE.format(question=question, context=context)
 
         messages = [
@@ -76,9 +74,11 @@ class QwenService:
 
             answer = response.choices[0].message.content
 
+            snippet_len = 400
             sources = [
                 ProductSource(
                     asin=doc.metadata.get("asin", ""),
+                    snippet=(doc.page_content or "")[:snippet_len],
                     title=doc.metadata.get("title", ""),
                     brand=doc.metadata.get("brand", ""),
                     price=doc.metadata.get("price", ""),
@@ -106,10 +106,6 @@ class QwenService:
             raise
 
     def extract_product_features(self, text: str) -> dict:
-        """
-        Extracts technical features from product text using Qwen.
-        Returns a dictionary of features.
-        """
         try:
             response = self.client.chat.completions.create(
                 model=self.model,

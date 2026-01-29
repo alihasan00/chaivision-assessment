@@ -26,10 +26,6 @@ class ProductIndexer:
 
         self.persist_directory = persist_directory
         self.embedding_model = embedding_model
-
-        # Use OpenAI embeddings wrapper for DashScope compatibility
-        # This ensures we use the correct base_url matches main.py
-
         self.embeddings = OpenAIEmbeddings(
             model=embedding_model,
             api_key=api_key,
@@ -44,7 +40,6 @@ class ProductIndexer:
         products = []
 
         with open(input_file, "r", encoding="utf-8") as f:
-            # Try loading as a standard JSON array first
             try:
                 content = json.load(f)
                 if isinstance(content, list):
@@ -59,8 +54,6 @@ class ProductIndexer:
             except json.JSONDecodeError:
                 f.seek(0)
                 pass
-
-            # Reset file pointer and read line by line (JSONL)
             f.seek(0)
             for line in f:
                 if line.strip():

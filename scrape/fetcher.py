@@ -206,6 +206,20 @@ async def scrape_products(
 
     async with AmazonScraper(use_local_html=use_local_html) as scraper:
         basic_products = await scraper.get_top_products(url, n=n)
+        if use_local_html and basic_products:
+            snap_dir = Path(settings.html_snapshots_dir)
+            filtered = []
+            for p in basic_products:
+                url_str = p.get("url") or ""
+                asin_match = re.search(settings.asin_pattern, url_str)
+                if asin_match and (snap_dir / f"product_{asin_match.group(1)}.html").exists():
+                    filtered.append(p)
+            skipped = len(basic_products) - len(filtered)
+            basic_products = filtered
+            if skipped:
+                logger.info(
+                    f"Local HTML mode: using {len(basic_products)} products with snapshots (skipping {skipped} without local files)"
+                )
         logger.info(f"Found {len(basic_products)} products to process")
 
         tasks = []

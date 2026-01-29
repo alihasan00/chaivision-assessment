@@ -7,3 +7,4 @@ lxml>=6.0.2
 openai>=2.15.0
 pandas>=3.0.0
 python-dotenv>=1.2.1
+uvicorn>=0.34.0

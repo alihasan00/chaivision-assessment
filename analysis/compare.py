@@ -1,16 +1,13 @@
-import pandas as pd
-import re
 import argparse
+import os
+import re
+import sys
 from pathlib import Path
 
-
-import sys
-import os
+import pandas as pd
 from dotenv import load_dotenv
 
-# Add project root to path so we can import from bot
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from bot.qwen_service import QwenService
 
 load_dotenv()
@@ -48,25 +45,29 @@ def clean_review_count(review_str):
         return None
 
 
-# AI extraction logic moved to bot.qwen_service.QwenService.extract_product_features
-
-
 def build_feature_matrix(
     input_file="data/products.jsonl", output_file="data/feature_matrix.csv"
 ):
-    print(f"Loading data from {input_file}...")
+    # Resolve input: use products.csv if default products.jsonl is missing (per repo layout)
+    resolved_input = input_file
+    if resolved_input == "data/products.jsonl" and not Path(resolved_input).exists():
+        fallback = "data/products.csv"
+        if Path(fallback).exists():
+            resolved_input = fallback
+            print(f"Note: {input_file} not found, using {fallback}")
+
+    print(f"Loading data from {resolved_input}...")
     try:
-        if input_file.endswith(".jsonl"):
-            df = pd.read_json(input_file, lines=True)
+        if resolved_input.endswith(".jsonl"):
+            df = pd.read_json(resolved_input, lines=True)
         else:
-            df = pd.read_csv(input_file)
+            df = pd.read_csv(resolved_input)
     except Exception as e:
         print(f"Error loading file: {e}")
         return
 
     print("Cleaning and processing data...")
 
-    # Initialize Qwen service
     try:
         qwen = QwenService()
     except Exception as e:
@@ -78,9 +79,6 @@ def build_feature_matrix(
     df["price_clean"] = df["price"].apply(clean_price)
     df["rating_clean"] = df["rating"].apply(clean_rating)
     df["reviews_clean"] = df["review_count"].apply(clean_review_count)
-    # Remove old manual cleaning for dimensions/weight since AI handles it
-    # df["dimensions_clean"] = df["dimensions"].apply(clean_dimensions)
-    # df["weight_clean"] = df["weight"].apply(clean_weight)
 
     def combine_text(row):
         bullets = row.get("bullet_features", [])
@@ -88,14 +86,12 @@ def build_feature_matrix(
             bullets = " ".join(bullets)
         elif not isinstance(bullets, str):
             bullets = ""
-        # Include explicit dimensions/weight in text for AI to see if present in metadata
         meta_dims = row.get("dimensions", "")
         meta_weight = row.get("weight", "")
         return f"{row.get('title', '')} {bullets} Dimensions: {meta_dims} Weight: {meta_weight}"
 
     df["full_text"] = df.apply(combine_text, axis=1)
 
-    print("Extracting features with AI (this may take a moment)...")
     print("Extracting features with AI (this may take a moment)...")
     if qwen:
         extracted_features = (
@@ -106,13 +102,29 @@ def build_feature_matrix(
     else:
         extracted_features = pd.DataFrame()
 
-    # Drop original dimensions/weight if present to avoid duplicates with AI extraction
-    # The AI extraction already sees these values via combine_text
+    # Keep raw dimensions/weight as fallback when AI does not extract them
+    raw_dimensions = df["dimensions"].copy() if "dimensions" in df.columns else None
+    raw_weight = df["weight"].copy() if "weight" in df.columns else None
+
     columns_to_drop = [c for c in ["dimensions", "weight"] if c in df.columns]
     if columns_to_drop:
         df = df.drop(columns=columns_to_drop)
 
     df = pd.concat([df, extracted_features], axis=1)
+
+    # Prefer AI-extracted dimensions/weight; fall back to raw when missing or empty
+    if raw_dimensions is not None:
+        if "dimensions" not in df.columns:
+            df["dimensions"] = raw_dimensions
+        else:
+            mask = df["dimensions"].isna() | (df["dimensions"].astype(str).str.strip() == "")
+            df.loc[mask, "dimensions"] = raw_dimensions
+    if raw_weight is not None:
+        if "weight" not in df.columns:
+            df["weight"] = raw_weight
+        else:
+            mask = df["weight"].isna() | (df["weight"].astype(str).str.strip() == "")
+            df.loc[mask, "weight"] = raw_weight
 
     cols = [
         "asin",
@@ -121,8 +133,8 @@ def build_feature_matrix(
         "rating_clean",
         "reviews_clean",
         "brand",
-        "dimensions",  # From AI
-        "weight",  # From AI
+        "dimensions",
+        "weight",
         "battery_life",
         "noise_level",
         "attachments_count",
@@ -131,7 +143,6 @@ def build_feature_matrix(
         "wattage",
     ]
 
-    # Ensure columns exist even if not extracted
     for c in cols:
         if c not in df.columns:
             df[c] = None
@@ -141,7 +152,6 @@ def build_feature_matrix(
         "price_clean": "price_usd",
         "rating_clean": "rating_stars",
         "reviews_clean": "review_count_num",
-        # dimensions/weight keys from AI response map directly
     }
     matrix = matrix.rename(columns=rename_map)
 
