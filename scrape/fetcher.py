@@ -1,7 +1,6 @@
 import asyncio
 import base64
 import json
-import os
 import re
 from pathlib import Path
 from typing import Optional
@@ -48,7 +47,9 @@ class AmazonScraper:
         if "/dp/" in url:
             asin_match = re.search(settings.asin_pattern, url)
             if asin_match:
-                return f"{settings.html_snapshots_dir}/product_{asin_match.group(1)}.html"
+                return (
+                    f"{settings.html_snapshots_dir}/product_{asin_match.group(1)}.html"
+                )
         return None
 
     def _save_page_html(self, url: str, html: str) -> None:
@@ -136,7 +137,9 @@ class AmazonScraper:
                         f"(attempt {retry_count + 1}/{max_retries})"
                     )
                     await asyncio.sleep(wait_time)
-                    return await self._fetch_page_html(url, retry_count + 1, max_retries)
+                    return await self._fetch_page_html(
+                        url, retry_count + 1, max_retries
+                    )
                 logger.error(
                     f"Max retries reached for {url[:50]}... "
                     f"Zyte API returned status 520: {response.text}"
@@ -212,7 +215,10 @@ async def scrape_products(
             for p in basic_products:
                 url_str = p.get("url") or ""
                 asin_match = re.search(settings.asin_pattern, url_str)
-                if asin_match and (snap_dir / f"product_{asin_match.group(1)}.html").exists():
+                if (
+                    asin_match
+                    and (snap_dir / f"product_{asin_match.group(1)}.html").exists()
+                ):
                     filtered.append(p)
             skipped = len(basic_products) - len(filtered)
             basic_products = filtered
